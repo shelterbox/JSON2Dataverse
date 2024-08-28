@@ -38,22 +38,92 @@ namespace Excel2Dataverse
 
     public EntityMetadata generateEntity(int locale, string? prefix, string? description)
     {
+      string displayName = getDisplayName();
+      string DisplayCollectionName = getDisplayCollectionName();
+
       return new EntityMetadata
       {
         SchemaName = getSchemaName(prefix),
-        DisplayName = new Label(getDisplayName(), locale),
-        DisplayCollectionName = new Label(getDisplayCollectionName(), locale),
+        LogicalName = displayName,
+        LogicalCollectionName = DisplayCollectionName,
+        DisplayName = new Label(displayName, locale),
+        DisplayCollectionName = new Label(DisplayCollectionName, locale),
         Description = new Label(description, locale),
         OwnershipType = OwnershipTypes.UserOwned,
-        IsActivity = false
+        IsActivity = false,
       };
+    }
+
+    public List<AttributeMetadata> generateAttributes(int locale, string? prefix)
+    {
+      List<AttributeMetadata> attributes = new();
+
+      foreach (KeyValuePair<string, string> entry in Members)
+      {
+        switch (entry.Value.ToLower())
+        {
+          case "enum":
+          case "string":
+            attributes.Add(new StringAttributeMetadata()
+            {
+
+            });
+            break;
+          case "boolean":
+            attributes.Add(new BooleanAttributeMetadata()
+            {
+
+            }); 
+            break;
+          case "datetime":
+            attributes.Add(new DateTimeAttributeMetadata()
+            {
+
+            });
+            break;
+          case "integer":
+            attributes.Add(new IntegerAttributeMetadata()
+            {
+
+            });
+            break;
+          case "long":
+            attributes.Add(new BigIntAttributeMetadata()
+            {
+
+            });
+            break;
+          case "decimal":
+            attributes.Add(new DecimalAttributeMetadata()
+            {
+
+            });
+            break;
+          case "binary":
+            attributes.Add(new FileAttributeMetadata()
+            {
+
+            });
+            break;
+          case "auto number":
+            attributes.Add(new IntegerAttributeMetadata()
+            {
+
+            });
+            break;
+          default:
+            throw new Exception($"Type '{entry.Value}' does not exist");
+        }
+      }
+
+      return attributes;
     }
 
     public StringAttributeMetadata generatePrimaryAttribute(int locale, string? prefix)
     {
       return new StringAttributeMetadata()
       {
-        SchemaName = $"{formatPrefix(prefix)}id",
+        SchemaName = $"{formatPrefix(prefix)}ID".ToLower(),
         DisplayName = new Label("ID", locale),
         MaxLength = 100,
         FormatName = StringFormatName.Text,
