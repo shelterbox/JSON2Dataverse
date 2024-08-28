@@ -60,59 +60,100 @@ namespace Excel2Dataverse
 
       foreach (KeyValuePair<string, string> entry in Members)
       {
+        if (entry.Key.ToLower() == "id")
+          continue;
+        
+        string schemaName = $"{formatPrefix(prefix)}{entry.Key}".ToLower();
+        string logicalName = $"{formatPrefix(prefix)}{entry.Key}";
+        string displayName = entry.Key;
+
         switch (entry.Value.ToLower())
         {
           case "enum":
           case "string":
             attributes.Add(new StringAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              MaxLength = 200
             });
             break;
           case "boolean":
             attributes.Add(new BooleanAttributeMetadata()
             {
-
-            }); 
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              OptionSet = new BooleanOptionSetMetadata(
+                new OptionMetadata(new Label("True", locale), 1),
+                new OptionMetadata(new Label("False", locale), 0)
+              )
+            });
             break;
           case "datetime":
             attributes.Add(new DateTimeAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              Format = DateTimeFormat.DateAndTime,
+              ImeMode = ImeMode.Auto
             });
             break;
           case "integer":
             attributes.Add(new IntegerAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              Format = IntegerFormat.None
             });
             break;
           case "long":
             attributes.Add(new BigIntAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
             });
             break;
           case "decimal":
             attributes.Add(new DecimalAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              Precision = 10
             });
             break;
           case "binary":
             attributes.Add(new FileAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
             });
             break;
           case "auto number":
             attributes.Add(new IntegerAttributeMetadata()
             {
-
+              SchemaName = schemaName,
+              LogicalName = logicalName,
+              DisplayName = new Label(displayName, locale),
+              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+              AutoNumberFormat = ""
             });
             break;
           default:
-            throw new Exception($"Type '{entry.Value}' does not exist");
+            throw new Exception($"Module: {Module}, Name: {Name}, Member: {entry.Key} - Data type value '{entry.Value}' does not exist.");
         }
       }
 
@@ -151,7 +192,7 @@ class Program
     */
 
     // Default parameters
-    int defaultLocale = 2057;
+    int defaultLocale = 1033; // 1033 or 2057 - for English
     string defaultPrefix = "OAP";
     string defaultDescription = "Imported from the Ops App.";
 
@@ -242,22 +283,20 @@ class Program
 ]");
 
     if (jsonEntities == null)
-    {
-      Console.WriteLine("No JSON to load, potentially invalid JSON.");
-      return;
-    }
+      throw new Exception("No JSON to load - Invalid JSON.");
 
     Console.WriteLine($"{jsonEntities.Count} {(jsonEntities.Count == 1 ? "entity" : "entities")} loaded. Creating schemas ...");
 
 
     // Create entities
-    int count = 1;
+    int entitiyCount = 1;
     foreach (Excel2Dataverse.JSONEntity jsonEntity in jsonEntities)
     {
       EntityMetadata dataverseEntity = jsonEntity.generateEntity(defaultLocale, defaultPrefix, defaultDescription);
       StringAttributeMetadata dataversePrimaryAttribute = jsonEntity.generatePrimaryAttribute(defaultLocale, defaultPrefix);
+      List<AttributeMetadata> dataverseAttributes = jsonEntity.generateAttributes(defaultLocale, defaultPrefix);
 
-      CreateEntityRequest createrequest = new CreateEntityRequest()
+      CreateEntityRequest entityRequest = new()
       {
         Entity = dataverseEntity,
         HasActivities = false,
@@ -266,10 +305,24 @@ class Program
         PrimaryAttribute = dataversePrimaryAttribute
       };
 
-      service.Execute(createrequest);
-      Console.WriteLine($"{count}/{jsonEntities.Count} - {jsonEntity.getDisplayName()} entity schema has been created.");
+      service.Execute(entityRequest);
+      Console.WriteLine($"{entitiyCount}/{jsonEntities.Count} - {dataverseEntity.LogicalName} entity schema has been created. Adding {dataverseAttributes.Count} attribute{(dataverseAttributes.Count == 1 ? "" : "s")}:");
 
-      count++;
+      int attributeCount = 1;
+      foreach (AttributeMetadata dataverseAttribute in dataverseAttributes)
+      {
+        CreateAttributeRequest attributeRequest = new()
+        {
+          Attribute = dataverseAttribute,
+          EntityName = dataverseEntity.SchemaName
+        };
+
+        service.Execute(attributeRequest);
+        Console.WriteLine($"\t{attributeCount}/{dataverseAttributes.Count} - {dataverseAttribute.LogicalName} attribute has been added.");
+        attributeCount++;
+      }
+
+      entitiyCount++;
     }
 
     // TODO -- Create relationships
