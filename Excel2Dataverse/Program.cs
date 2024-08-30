@@ -12,6 +12,7 @@ namespace Excel2Dataverse
   class JSONEntity
   {
     [Required] public string? Name { get; set; }
+    [Required] public string? PrimaryKey { get; set; }
     public Dictionary<string, string> Members { get; set; } = new();
     public Dictionary<string, string> ManyToOne { get; set; } = new();
     public Dictionary<string, string> ManyToMany { get; set; } = new();
@@ -69,7 +70,7 @@ namespace Excel2Dataverse
 
     public CreateEntityRequest generateEntityRequest(int locale, string? prefix, string? description, string? solutionUniqueName)
     {
-      StringAttributeMetadata primaryAttribute = generatePrimaryAttribute(locale, prefix);
+      StringAttributeMetadata primaryAttribute = generatePrimaryAttribute(locale, prefix, description);
 
       string schemaName = formatSchemaName(prefix, Name);
       string displayName = formatDisplayName(prefix, Name);
@@ -101,117 +102,119 @@ namespace Excel2Dataverse
       };
     }
 
+    private AttributeMetadata generateMember(int locale, string? prefix, string? description, KeyValuePair<string, string> member)
+    {
+      string schemaName = formatSchemaName(prefix, member.Key);
+      string displayName = formatDisplayName(prefix, member.Key);
+      string logicalName = formatLogicalName(prefix, member.Key);
+
+      switch (member.Value.ToLower())
+      {
+        case "enum":
+        case "string":
+          return new StringAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            MaxLength = 200
+          };
+
+        case "boolean":
+          return new BooleanAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            OptionSet = new BooleanOptionSetMetadata(
+              new OptionMetadata(new Label("True", locale), 1),
+              new OptionMetadata(new Label("False", locale), 0)
+            )
+          };
+
+        case "datetime":
+          return new DateTimeAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = DateTimeFormat.DateAndTime,
+            ImeMode = ImeMode.Auto
+          };
+
+        case "integer":
+          return new IntegerAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = IntegerFormat.None
+          };
+
+        case "long":
+          return new BigIntAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
+          };
+
+        case "decimal":
+          return new DecimalAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Precision = 10
+          };
+
+        case "binary":
+          return new FileAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
+          };
+
+        case "auto number":
+          return new IntegerAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            AutoNumberFormat = ""
+          };
+
+        default:
+          throw new Exception($"Entity: {Name}, Member: {member.Key} - Data type value '{member.Value}' does not exist.");
+
+      }
+    }
+
     public List<CreateAttributeRequest> generateAttributeRequests(int locale, string? prefix, string? description, string? solutionUniqueName)
     {
       List<CreateAttributeRequest> requests = new();
       string entitySchemaName = formatSchemaName(prefix, Name);
 
-      foreach (KeyValuePair<string, string> entry in Members)
+      foreach (KeyValuePair<string, string> member in Members.Skip(1))
       {
-        if (entry.Key.ToLower() == "id")
-          continue;
-
-        AttributeMetadata attribute;
-        string schemaName = formatSchemaName(prefix, entry.Key);
-        string displayName = formatDisplayName(prefix, entry.Key);
-        string logicalName = formatLogicalName(prefix, entry.Key);
-
-        switch (entry.Value.ToLower())
-        {
-          case "enum":
-          case "string":
-            attribute = new StringAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              MaxLength = 200
-            };
-            break;
-          case "boolean":
-            attribute = new BooleanAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              OptionSet = new BooleanOptionSetMetadata(
-                new OptionMetadata(new Label("True", locale), 1),
-                new OptionMetadata(new Label("False", locale), 0)
-              )
-            };
-            break;
-          case "datetime":
-            attribute = new DateTimeAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              Format = DateTimeFormat.DateAndTime,
-              ImeMode = ImeMode.Auto
-            };
-            break;
-          case "integer":
-            attribute = new IntegerAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              Format = IntegerFormat.None
-            };
-            break;
-          case "long":
-            attribute = new BigIntAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
-            };
-            break;
-          case "decimal":
-            attribute = new DecimalAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              Precision = 10
-            };
-            break;
-          case "binary":
-            attribute = new FileAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
-            };
-            break;
-          case "auto number":
-            attribute = new IntegerAttributeMetadata()
-            {
-              SchemaName = schemaName,
-              LogicalName = logicalName,
-              DisplayName = new Label(displayName, locale),
-              Description = new Label(description, locale),
-              RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-              AutoNumberFormat = ""
-            };
-            break;
-          default:
-            throw new Exception($"Name: {Name}, Member: {entry.Key} - Data type value '{entry.Value}' does not exist.");
-        }
+        AttributeMetadata attribute = generateMember(locale, prefix, description, member);
 
         requests.Add(new()
         {
@@ -224,20 +227,39 @@ namespace Excel2Dataverse
       return requests;
     }
 
-    private StringAttributeMetadata generatePrimaryAttribute(int locale, string? prefix)
+    private StringAttributeMetadata generatePrimaryAttribute(int locale, string? prefix, string? description)
     {
-      string schemaName = formatSchemaName(prefix, "ID");
-      string displayName = formatDisplayName(prefix, "ID");
-      string logicalName = formatLogicalName(prefix, "ID");
+      KeyValuePair<string, string> primaryMember = Members.First();
 
-      return new StringAttributeMetadata()
+      if (primaryMember.Value.ToLower() != "string")
+        throw new Exception($"Entity: {Name}, Member: {primaryMember.Key} - Invalid type '{primaryMember.Value}'. Primary attribute has to be a string.");
+
+      return (StringAttributeMetadata)generateMember(locale, prefix, description, primaryMember);
+    }
+
+    public CreateEntityKeyRequest generateKeyRequest(int locale, string? prefix, string? solutionUniqueName)
+    {
+      string[] keyAttributes = { formatLogicalName(prefix, PrimaryKey) };
+
+      string entityLogicalName = formatLogicalName(prefix, Name);
+
+      string keySchemaName = formatSchemaName(prefix, PrimaryKey);
+      string keyLogicalName = formatLogicalName(prefix, PrimaryKey);
+      string keyDisplayName = formatDisplayName(prefix, PrimaryKey);
+
+
+      return new CreateEntityKeyRequest()
       {
-        SchemaName = schemaName,
-        LogicalName = logicalName,
-        DisplayName = new Label(displayName, locale),
-        MaxLength = 100,
-        FormatName = StringFormatName.Text,
-        RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.SystemRequired)
+        EntityKey = new EntityKeyMetadata()
+        {
+          DisplayName = new Label(keyDisplayName, locale),
+          LogicalName = keyLogicalName,
+          SchemaName = keySchemaName,
+          KeyAttributes = keyAttributes,
+          IsSecondaryKey = false
+        },
+        EntityName = entityLogicalName,
+        SolutionUniqueName = solutionUniqueName,
       };
     }
 
@@ -245,15 +267,15 @@ namespace Excel2Dataverse
     {
       List<CreateOneToManyRequest> requests = new();
 
-      foreach (KeyValuePair<string, string> entry in ManyToOne)
+      foreach (KeyValuePair<string, string> relationship in ManyToOne)
       {
-        string referencedTableDisplayName = formatDisplayName(prefix, entry.Value);
-        string referencedTableLogicalName = formatLogicalName(prefix, entry.Value);
+        string referencedTableDisplayName = formatDisplayName(prefix, relationship.Value);
+        string referencedTableLogicalName = formatLogicalName(prefix, relationship.Value);
         string referencingTableLogicalName = formatLogicalName(prefix, Name);
 
-        string relationshipSchemaName = formatSchemaName(prefix, entry.Key);
-        string relationshipDisplayName = formatDisplayName(prefix, entry.Key);
-        string relationshipLogicalName = formatLogicalName(prefix, entry.Key);
+        string relationshipSchemaName = formatSchemaName(prefix, relationship.Key);
+        string relationshipDisplayName = formatDisplayName(prefix, relationship.Key);
+        string relationshipLogicalName = formatLogicalName(prefix, relationship.Key);
 
         requests.Add(new()
         {
@@ -302,13 +324,13 @@ namespace Excel2Dataverse
     {
       List<CreateManyToManyRequest> requests = new();
 
-      foreach (KeyValuePair<string, string> entry in ManyToMany)
+      foreach (KeyValuePair<string, string> relationship in ManyToMany)
       {
         string referencedTableLogicalName = formatLogicalName(prefix, Name);
-        string referencingTableLogicalName = formatLogicalName(prefix, entry.Value);
+        string referencingTableLogicalName = formatLogicalName(prefix, relationship.Value);
 
-        string relationshipSchemaName = formatSchemaName(prefix, entry.Key);
-        string relationshipDisplayName = formatDisplayName(prefix, entry.Key);
+        string relationshipSchemaName = formatSchemaName(prefix, relationship.Key);
+        string relationshipDisplayName = formatDisplayName(prefix, relationship.Key);
 
         requests.Add(new()
         {
@@ -429,7 +451,7 @@ class Program
         Console.WriteLine($"'{entityRequest.Entity.SchemaName}' entity has been created.");
       }
 
-      Console.WriteLine($"\tAdding {attributeRequests.Count} attribute{(attributeRequests.Count == 1 ? "" : "s")} ...\n");
+      Console.WriteLine($"\n\tAdding {attributeRequests.Count} attribute{(attributeRequests.Count == 1 ? "" : "s")} ...");
 
       // Add attributes
       int attributeCount = 1;
@@ -450,7 +472,28 @@ class Program
         }
         attributeCount++;
       }
-      Console.WriteLine("\n");
+
+      if (!(jsonEntity.PrimaryKey == null || jsonEntity.PrimaryKey.Trim() == ""))
+      {
+        Console.WriteLine("\n\tAdding key ...");
+
+        // Add key
+        List<EntityKeyMetadata> existingKeys = existingEntity != null ? existingEntity.Keys.ToList() : new();
+
+        CreateEntityKeyRequest keyRequest = jsonEntity.generateKeyRequest(defaultLocale, defaultPrefix, defaultSolution);
+        EntityKeyMetadata? existingKey = existingKeys.Find(x => x.LogicalName == keyRequest.EntityKey.LogicalName);
+
+        if (existingKey != null)
+        {
+          Console.WriteLine($"\t\tSkipping '{keyRequest.EntityKey.LogicalName}' key, already exists.");
+        }
+        else
+        {
+          service.Execute(keyRequest);
+          Console.WriteLine($"\t\t'{keyRequest.EntityKey.LogicalName}' key had been added.");
+        }
+      }
+
       entitiyCount++;
     }
 
