@@ -190,17 +190,6 @@ namespace Excel2Dataverse
             RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None)
           };
 
-        case "auto number":
-          return new IntegerAttributeMetadata()
-          {
-            SchemaName = schemaName,
-            LogicalName = logicalName,
-            DisplayName = new Label(displayName, locale),
-            Description = new Label(description, locale),
-            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
-            AutoNumberFormat = ""
-          };
-
         default:
           throw new Exception($"Entity: {Name}, Member: {member.Key} - Data type value '{member.Value}' does not exist.");
 
