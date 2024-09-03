@@ -102,7 +102,7 @@ namespace Excel2Dataverse
       };
     }
 
-    private AttributeMetadata generateMember(int locale, string? prefix, string? description, KeyValuePair<string, string> member)
+    private AttributeMetadata generateAttribute(int locale, string? prefix, string? description, KeyValuePair<string, string> member)
     {
       string schemaName = formatSchemaName(prefix, member.Key);
       string displayName = formatDisplayName(prefix, member.Key);
@@ -119,6 +119,79 @@ namespace Excel2Dataverse
             DisplayName = new Label(displayName, locale),
             Description = new Label(description, locale),
             RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.Text,
+            MaxLength = 200
+          };
+
+        case "text":
+          return new MemoAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.TextArea,
+            MaxLength = 50000
+          };
+
+        case "richtext":
+          return new MemoAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.RichText,
+            MaxLength = 50000
+          };
+
+        case "email":
+          return new StringAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.Email,
+            MaxLength = 200
+          };
+
+        case "phone":
+          return new StringAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.Phone,
+            MaxLength = 200
+          };
+
+        case "url":
+          return new StringAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.Url,
+            MaxLength = 200
+          };
+
+        case "json":
+          return new StringAttributeMetadata()
+          {
+            SchemaName = schemaName,
+            LogicalName = logicalName,
+            DisplayName = new Label(displayName, locale),
+            Description = new Label(description, locale),
+            RequiredLevel = new AttributeRequiredLevelManagedProperty(AttributeRequiredLevel.None),
+            Format = StringFormat.Json,
             MaxLength = 200
           };
 
@@ -203,7 +276,7 @@ namespace Excel2Dataverse
 
       foreach (KeyValuePair<string, string> member in Members.Skip(1))
       {
-        AttributeMetadata attribute = generateMember(locale, prefix, description, member);
+        AttributeMetadata attribute = generateAttribute(locale, prefix, description, member);
 
         requests.Add(new()
         {
@@ -223,7 +296,7 @@ namespace Excel2Dataverse
       if (primaryMember.Value.ToLower() != "string")
         throw new Exception($"Entity: {Name}, Member: {primaryMember.Key} - Invalid type '{primaryMember.Value}'. Primary attribute has to be a string.");
 
-      return (StringAttributeMetadata)generateMember(locale, prefix, description, primaryMember);
+      return (StringAttributeMetadata)generateAttribute(locale, prefix, description, primaryMember);
     }
 
     public CreateEntityKeyRequest generateKeyRequest(int locale, string? prefix, string? solutionUniqueName)
@@ -372,13 +445,15 @@ class Program
 
 
     // Load JSON file here
+    Console.ForegroundColor = ConsoleColor.Yellow;
     Console.Write("Enter file path to *.json file: ");
+    Console.ResetColor();
     string? inputFilepath = Console.ReadLine();
     if (inputFilepath == null)
       throw new Exception("File path is required");
 
+    inputFilepath = inputFilepath.Replace("\"", "");
     StreamReader stream = new StreamReader(inputFilepath);
-
     List<Excel2Dataverse.JSONEntity>? jsonEntities = JsonSerializer.Deserialize<List<Excel2Dataverse.JSONEntity>>(stream.ReadToEnd());
 
     if (jsonEntities == null)
@@ -386,11 +461,19 @@ class Program
 
 
     // Get user input
+    Console.ForegroundColor = ConsoleColor.Yellow;
     Console.Write("Enter a prefix (default 'OAP'): ");
+    Console.ResetColor();
     string? inputPrefix = Console.ReadLine();
+
+    Console.ForegroundColor = ConsoleColor.Yellow;
     Console.Write("Enter a description (default 'Imported from the Ops App.'): ");
+    Console.ResetColor();
     string? inputDescription = Console.ReadLine();
+
+    Console.ForegroundColor = ConsoleColor.Yellow;
     Console.Write("Enter solution unique name (default 'OAP'): ");
+    Console.ResetColor();
     string? inputSolution = Console.ReadLine();
 
     defaultPrefix = inputPrefix == null || inputPrefix.Trim() == "" ? defaultPrefix : inputPrefix;
@@ -440,7 +523,7 @@ class Program
         Console.WriteLine($"'{entityRequest.Entity.SchemaName}' entity has been created.");
       }
 
-      Console.WriteLine($"\n\tAdding {attributeRequests.Count} attribute{(attributeRequests.Count == 1 ? "" : "s")} ...");
+      Console.WriteLine($"\tAdding {attributeRequests.Count} attribute{(attributeRequests.Count == 1 ? "" : "s")} ...");
 
       // Add attributes
       int attributeCount = 1;
@@ -464,7 +547,7 @@ class Program
 
       if (!(jsonEntity.PrimaryKey == null || jsonEntity.PrimaryKey.Trim() == ""))
       {
-        Console.WriteLine("\n\tAdding key ...");
+        Console.WriteLine("\tAdding key ...");
 
         // Add key
         List<EntityKeyMetadata> existingKeys = existingEntity != null ? existingEntity.Keys.ToList() : new();
@@ -497,7 +580,7 @@ class Program
       List<OneToManyRelationshipMetadata> existingManyToOnes = existingEntity != null ? existingEntity.ManyToOneRelationships.ToList() : new();
 
       List<CreateOneToManyRequest> manyToOneRequests = jsonEntity.generateManyToOneRequests(defaultLocale, defaultPrefix, defaultSolution);
-      Console.WriteLine($"Adding {jsonEntity.ManyToOne.Count} many-to-one relationship{(jsonEntity.ManyToOne.Count == 1 ? "" : "s")} to '{Excel2Dataverse.JSONEntity.formatSchemaName(defaultPrefix, jsonEntity.Name)}' ...");
+      Console.WriteLine($"\nAdding {jsonEntity.ManyToOne.Count} many-to-one relationship{(jsonEntity.ManyToOne.Count == 1 ? "" : "s")} to '{Excel2Dataverse.JSONEntity.formatSchemaName(defaultPrefix, jsonEntity.Name)}' ...");
 
       int relationshipCount = 1;
       foreach (CreateOneToManyRequest manyToOneRequest in manyToOneRequests)
@@ -517,7 +600,6 @@ class Program
         }
         relationshipCount++;
       }
-      Console.WriteLine("\n");
     }
 
 
@@ -530,7 +612,7 @@ class Program
       EntityMetadata? existingEntity = existingEntities.Find(x => x.LogicalName == Excel2Dataverse.JSONEntity.formatLogicalName(defaultPrefix, jsonEntity.Name));
       List<ManyToManyRelationshipMetadata> existingManyToManys = existingEntity != null ? existingEntity.ManyToManyRelationships.ToList() : new();
 
-      Console.WriteLine($"Adding {jsonEntity.ManyToMany.Count} many-to-many relationship{(jsonEntity.ManyToMany.Count == 1 ? "" : "s")} to '{Excel2Dataverse.JSONEntity.formatSchemaName(defaultPrefix, jsonEntity.Name)}':");
+      Console.WriteLine($"\nAdding {jsonEntity.ManyToMany.Count} many-to-many relationship{(jsonEntity.ManyToMany.Count == 1 ? "" : "s")} to '{Excel2Dataverse.JSONEntity.formatSchemaName(defaultPrefix, jsonEntity.Name)}':");
 
       List<CreateManyToManyRequest> manyToManyRequests = jsonEntity.generateManyToManyRequests(defaultLocale, defaultPrefix, defaultSolution);
 
@@ -552,7 +634,6 @@ class Program
         }
         relationshipCount++;
       }
-      Console.WriteLine("");
     }
 
     // Pause the console so it does not close.
