@@ -1,5 +1,5 @@
 # JSON2Dataverse
-Quickly create entities, attributes, keys and relationships in Dataverse from a JSON file.
+Quickly create entities, attributes, keys and relationships in Dataverse from a JSON.
 - [JSON2Dataverse](#json2dataverse)
   - [Setup](#setup)
     - [Example app.config](#example-appconfig)
