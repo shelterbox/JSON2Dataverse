@@ -11,7 +11,7 @@ Quickly create entities, attributes, keys and relationships in Dataverse from a 
 ## Setup
 Before you can run the script, you will need to setup the connection between it and your Dataverse instance:
 
- 1. Create `./Excel2Dataverse/app.config` file
+ 1. Create `./JSON2Dataverse/app.config` file
  2. Add [`connectionString`](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/xrm-tooling/use-connection-strings-xrm-tooling-connect#connection-string-parameters) with the name `dynamics` to the file. Or copy the example one below to get started 
 
 ### Example app.config

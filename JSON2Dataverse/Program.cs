@@ -6,7 +6,7 @@ using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 
-namespace Excel2Dataverse
+namespace JSON2Dataverse
 {
   class Action
   {
@@ -700,7 +700,7 @@ class Program
     inputFilepath = inputFilepath.Replace("\"", "");
 
     StreamReader stream = new StreamReader(inputFilepath);
-    List<Excel2Dataverse.JSONEntity>? jsonEntities = JsonSerializer.Deserialize<List<Excel2Dataverse.JSONEntity>>(stream.ReadToEnd());
+    List<JSON2Dataverse.JSONEntity>? jsonEntities = JsonSerializer.Deserialize<List<JSON2Dataverse.JSONEntity>>(stream.ReadToEnd());
 
     if (jsonEntities == null)
       throw new Exception("No JSON to load - Invalid JSON.");
@@ -708,35 +708,35 @@ class Program
 
     // Get user input
     Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.Write($"Enter a prefix (default '{Excel2Dataverse.JSONEntity.Prefix}'): ");
+    Console.Write($"Enter a prefix (default '{JSON2Dataverse.JSONEntity.Prefix}'): ");
     Console.ResetColor();
     string? inputPrefix = Console.ReadLine();
 
     if (inputPrefix != null && inputPrefix.Trim() != "")
-      Excel2Dataverse.JSONEntity.Prefix = inputPrefix;
+      JSON2Dataverse.JSONEntity.Prefix = inputPrefix;
 
     Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.Write($"Enter a description (default '{Excel2Dataverse.JSONEntity.Description}'): ");
+    Console.Write($"Enter a description (default '{JSON2Dataverse.JSONEntity.Description}'): ");
     Console.ResetColor();
     string? inputDescription = Console.ReadLine();
 
     if (inputDescription != null && inputDescription.Trim() != "")
-      Excel2Dataverse.JSONEntity.Description = inputDescription;
+      JSON2Dataverse.JSONEntity.Description = inputDescription;
 
     Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.Write($"Enter solution unique name (default '{Excel2Dataverse.JSONEntity.Solution}'): ");
+    Console.Write($"Enter solution unique name (default '{JSON2Dataverse.JSONEntity.Solution}'): ");
     Console.ResetColor();
     string? inputSolution = Console.ReadLine();
 
     if (inputSolution != null && inputSolution.Trim() != "")
-      Excel2Dataverse.JSONEntity.Solution = inputSolution;
+      JSON2Dataverse.JSONEntity.Solution = inputSolution;
 
     Console.WriteLine("\n");
 
 
     // Login to Microsoft
     Console.WriteLine("Sign-in to your Microsoft Account using the browser pop-up ...");
-    Excel2Dataverse.Action action = new();
+    JSON2Dataverse.Action action = new();
     Console.WriteLine($"Successfully signed in.\n\n");
 
 
