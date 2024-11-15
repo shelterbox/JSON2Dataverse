@@ -17,7 +17,11 @@ Before you can run the script, you will need to setup the connection between it 
 ### Example app.config
 
 > [!NOTE]
-> Replace: `YOUR_ENVIRONMENT_URL` with your Dataverse enironment URL and, `YOUR_AZURE_APPID` with the Microsoft Entra SSO App ID
+> Replace:
+> 
+> `YOUR_ENVIRONMENT_URL` with your Dataverse enironment URL and,
+> 
+> `YOUR_AZURE_APPID` with the Microsoft Entra SSO App ID
 
 ```xml
 <?xml version='1.0' encoding='utf-8'?>
